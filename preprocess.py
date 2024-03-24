@@ -8,7 +8,7 @@ def get_NUFORC_archive():
     data = pd.read_csv(data_path, on_bad_lines='skip')
     # Convert 'datetime' to datetime object
     data['datetime'] = pd.to_datetime(data['datetime'], errors='coerce')
-
+    data['datetime_str'] = data['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')  # Convert to string
     # Convert 'duration (seconds)' to numeric (float)
     data['duration (seconds)'] = pd.to_numeric(data['duration (seconds)'], errors='coerce')
 

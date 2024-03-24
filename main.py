@@ -2,11 +2,16 @@ import streamlit as st
 import pandas as pd
 from preprocess import *
 import pydeck as pdk
-
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 
 @st.cache_data
 def get_NUFORC_data():
     return get_NUFORC_archive()
+
+@st.cache_data
+def get_occurences(_data, grid_size):
+    return add_occurrences_based_on_range(_data, grid_size=grid_size)
 
 # Streamlit app
 st.title('UFO Sighting Analysis Dashboard')
@@ -54,7 +59,7 @@ zoom_level = st.slider('Degree range', min_value=1.0, max_value=20.0, value=5.0,
 grid_size = zoom_level
 # st.map(map_data)
 # Recalculate occurrences based on the selected grid size
-data = add_occurrences_based_on_range(data, grid_size=grid_size)
+data = get_occurences(data, grid_size)
 # Sort the groups by occurrences
 sorted_grouped = data.sort_values(by=['occurrences', 'state'], ascending=[False, True])
 
@@ -73,7 +78,15 @@ layer = pdk.Layer(
 view_state = pdk.ViewState(latitude=data['latitude'].mean(), longitude=data['longitude'].mean(), zoom = 2)
 
 # Render the map with Pydeck
-st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "{comments}"}))
+# Configure tooltips to include datetime_str
+tooltip = {
+    "html": "<b>Date Time:</b> {datetime_str}<br><b>Duration:</b> {duration (hours/min)}<br><b>Description:</b> {comments}",  # Adjust based on your columns
+    "style": {
+        "backgroundColor": "steelblue",
+        "color": "white"
+    }
+}
+st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip))
 
 st.markdown("""
 ### Data sorted by occurences and city
@@ -81,3 +94,61 @@ st.markdown("""
 st.dataframe(sorted_grouped)
 
 st.markdown(description2)
+
+
+st.markdown("""
+## Shape Analysis
+""")
+
+# Assuming 'data' is your DataFrame
+shape_counts = data['shape'].value_counts()
+st.bar_chart(shape_counts)
+
+st.markdown("""
+## Description Analysis
+""")
+# keyword = st.text_input("Search descriptions")
+# if keyword:
+#     filtered_data = data[data['comments'].str.contains(keyword, case=False)]
+#     st.write(filtered_data)
+# Concatenate all descriptions into a single string
+all_descriptions = ' '.join(data['comments'].dropna())
+
+# Generate a word cloud image
+wordcloud = WordCloud(background_color='white', 
+                      width=1600,  # Increase width
+                      height=800,  # Increase height
+                      max_font_size=200,  # Adjust font size if needed
+                      max_words=200, 
+                      contour_width=3, 
+                      contour_color='steelblue').generate(all_descriptions)
+# Display the generated image:
+plt.figure(figsize=(20, 10))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')  # Don't show axes for a cleaner look
+st.pyplot(plt)  # Use st.pyplot() to display the plot in Streamlit
+
+st.markdown("""
+## Duration Analysis
+""")
+data['duration (seconds)'] = pd.to_numeric(data['duration (seconds)'], errors='coerce')
+# duration_log = np.log1p(data['duration (seconds)'])  # Log-transform for better visualization
+# Create a histogram with a log-transformed x-axis
+plt.figure(figsize=(10, 6))
+plt.hist(data['duration (seconds)'], bins=50, color='skyblue', log=True)
+plt.xscale('log')  # Log-transform the x-axis
+plt.title('Histogram of Log-transformed Duration')
+plt.xlabel('Duration (seconds, log scale)')
+plt.ylabel('Frequency (log scale)')
+st.pyplot(plt)
+
+st.markdown("""
+## Datetime Analysis
+""")
+# Plotting the resampled data
+plt.figure(figsize=(10, 6))  # Optional: Adjusts the size of the plot
+data.resample('Y', on='datetime').size().plot()
+plt.title('UFO Sightings per Year')
+plt.ylabel('Number of Sightings')
+plt.xlabel('Year')
+st.pyplot(plt)
