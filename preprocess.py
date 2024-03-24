@@ -1,11 +1,11 @@
 import pandas as pd
-import os
+# import os
 import numpy as np
 
 
 def get_NUFORC_archive():
-    cwd = os.getcwd()
-    data = pd.read_csv(cwd + '\\NUFORC archive\\complete.csv', on_bad_lines='skip')
+    data_path = 'NUFORC archive/complete.csv'
+    data = pd.read_csv(data_path, on_bad_lines='skip')
     # Convert 'datetime' to datetime object
     data['datetime'] = pd.to_datetime(data['datetime'], errors='coerce')
 
