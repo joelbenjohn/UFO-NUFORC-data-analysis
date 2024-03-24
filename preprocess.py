@@ -41,7 +41,7 @@ def add_occurrences_based_on_range(df, lat_col='latitude', lon_col='longitude', 
     
     # Count the occurrences and add as a new column
     df['occurrences'] = df.groupby('temp_key')['temp_key'].transform('count')
-    df['log_scaled_radius'] = df['occurrences']* 10  # Adjust scaling factor as needed
+    df['radius'] = np.log(df['occurrences']+1)* 1000  # Adjust scaling factor as needed
     # Drop the temporary columns
     df.drop(['temp_key', 'rounded_lat', 'rounded_lon'], axis=1, inplace=True)
     
